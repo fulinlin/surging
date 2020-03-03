@@ -2,20 +2,17 @@
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Surging.Core.Caching.Configurations;
 using Surging.Core.CPlatform.Utilities;
-using Surging.Core.EventBusRabbitMQ.Configurations;
-using System;
 
 namespace Surging.Services.Server
 {
     public class Startup
     {
         public Startup(IConfigurationBuilder config)
-        { 
-            ConfigureEventBus(config);
-            ConfigureCache(config);
+        {
+          ConfigureEventBus(config);
+          //  ConfigureCache(config);
         }
 
         public IContainer ConfigureServices(ContainerBuilder builder)
@@ -29,8 +26,7 @@ namespace Surging.Services.Server
 
         public void Configure(IContainer app)
         {
-            app.Resolve<ILoggerFactory>()
-                    .AddConsole((c, l) => (int)l >= 3);
+   
         }
 
         #region 私有方法
@@ -40,13 +36,13 @@ namespace Surging.Services.Server
         /// <param name="services"></param>
         private void ConfigureLogging(IServiceCollection services)
         {
-            services.AddLogging();
+           // services.AddLogging();
         }
 
         private static void ConfigureEventBus(IConfigurationBuilder build)
         {
-            build
-            .AddEventBusFile("eventBusSettings.json", optional: false);
+          //  build
+           // .AddEventBusFile("eventBusSettings.json", optional: false);
         }
 
         /// <summary>

@@ -24,19 +24,21 @@ namespace Surging.Core.CPlatform.Support.Implementation
             {
                 manager.Changed += ServiceCommandManager_Removed;
                 manager.Removed += ServiceCommandManager_Removed;
+                manager.Created += ServiceCommandManager_Add;
             }
         }
 
-        public override ValueTask<ServiceCommand> GetCommand(string serviceId)
+        public override async  ValueTask<ServiceCommand> GetCommand(string serviceId)
         {
             var result = _serviceCommand.GetValueOrDefault(serviceId);
             if (result == null)
             {
-                return new ValueTask<ServiceCommand>(GetCommandAsync(serviceId));
+                var task = GetCommandAsync(serviceId);
+                return task.IsCompletedSuccessfully ? task.Result : await task;
             }
             else
             {
-                return new ValueTask<ServiceCommand>(result);
+                return result;
             }
         }
 
@@ -65,6 +67,11 @@ namespace Surging.Core.CPlatform.Support.Implementation
         {
             ServiceCommand value;
             _serviceCommand.TryRemove(e.Command.ServiceId, out value);
+        }
+
+        public void ServiceCommandManager_Add(object sender, ServiceCommandEventArgs e)
+        { 
+            _serviceCommand.GetOrAdd(e.Command.ServiceId, e.Command);
         }
 
         public ServiceCommand ConvertServiceCommand(CommandAttribute command)

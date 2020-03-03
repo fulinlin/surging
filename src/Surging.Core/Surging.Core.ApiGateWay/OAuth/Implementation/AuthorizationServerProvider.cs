@@ -14,13 +14,16 @@ using Surging.Core.CPlatform.Cache;
 
 namespace Surging.Core.ApiGateWay.OAuth
 {
+    /// <summary>
+    /// 授权服务提供者
+    /// </summary>
     public class AuthorizationServerProvider: IAuthorizationServerProvider
     {
         private readonly IServiceProxyProvider _serviceProxyProvider;
         private readonly IServiceRouteProvider _serviceRouteProvider;
         private readonly CPlatformContainer _serviceProvider;
         private readonly ICacheProvider _cacheProvider;
-        public AuthorizationServerProvider(ConfigInfo configInfo, IServiceProxyProvider serviceProxyProvider
+        public AuthorizationServerProvider(IServiceProxyProvider serviceProxyProvider
            ,IServiceRouteProvider serviceRouteProvider
             , CPlatformContainer serviceProvider)
         {
@@ -34,14 +37,13 @@ namespace Surging.Core.ApiGateWay.OAuth
         {
             string result = null;
             var payload = await _serviceProxyProvider.Invoke<object>(parameters,AppConfig.AuthorizationRoutePath, AppConfig.AuthorizationServiceKey);
-            if (payload != null)
+            if (payload!=null && !payload.Equals("null") )
             {
                 var jwtHeader = JsonConvert.SerializeObject(new JWTSecureDataHeader() { TimeStamp = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") });
                 var base64Payload = ConverBase64String(JsonConvert.SerializeObject(payload));
                 var encodedString = $"{ConverBase64String(jwtHeader)}.{base64Payload}";
                 var route = await _serviceRouteProvider.GetRouteByPath(AppConfig.AuthorizationRoutePath);
-                var addressModel = route.Address.FirstOrDefault();
-                var signature = HMACSHA256(encodedString, addressModel.Token);
+                var signature = HMACSHA256(encodedString, route.ServiceDescriptor.Token);
                 result= $"{encodedString}.{signature}";
                 _cacheProvider.Add(base64Payload, result,AppConfig.AccessTokenExpireTimeSpan);
             }
@@ -67,6 +69,22 @@ namespace Surging.Core.ApiGateWay.OAuth
             if (jwtToken.Length == 3)
             {
                 isSuccess = await _cacheProvider.GetAsync<string>(jwtToken[1]) == token;
+            }
+            return isSuccess;
+        }
+
+        public async Task<bool> RefreshToken(string token)
+        {
+            bool isSuccess = false;
+            var jwtToken = token.Split('.');
+            if (jwtToken.Length == 3)
+            {
+                var  value = await _cacheProvider.GetAsync<string>(jwtToken[1]);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    _cacheProvider.Add(jwtToken[1], value, AppConfig.AccessTokenExpireTimeSpan);
+                    isSuccess = true;
+                }
             }
             return isSuccess;
         }

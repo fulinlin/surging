@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Surging.Core.Caching.AddressResolvers;
 using Surging.Core.Caching.AddressResolvers.Implementation;
+using Surging.Core.Caching.Configurations;
+using Surging.Core.Caching.Configurations.Implementation;
 using Surging.Core.Caching.HashAlgorithms;
 using Surging.Core.Caching.HealthChecks;
 using Surging.Core.Caching.HealthChecks.Implementation;
@@ -19,10 +21,18 @@ using System.Text;
 
 namespace Surging.Core.Caching
 {
+    /// <summary>
+    /// 容器生成扩展 
+    /// </summary>
     public static class ContainerBuilderExtensions
     {
         private const string CacheSectionName = "CachingProvider";
 
+        /// <summary>
+        /// 附加缓存注入 
+        /// </summary>
+        /// <param name="builder">服务构建者</param>
+        /// <returns>服务构建者</returns>
         public static IServiceBuilder AddCache(this IServiceBuilder builder)
         {
             var services = builder.Services;
@@ -31,11 +41,17 @@ namespace Surging.Core.Caching
             services.RegisterType(typeof(HashAlgorithm)).As(typeof(IHashAlgorithm)).SingleInstance();
             services.RegisterType(typeof(DefaultServiceCacheFactory)).As(typeof(IServiceCacheFactory)).SingleInstance();
             services.RegisterType(typeof(DefaultCacheNodeProvider)).As(typeof(ICacheNodeProvider)).SingleInstance();
+            services.RegisterType(typeof(ConfigurationWatchProvider)).As(typeof(IConfigurationWatchProvider)).SingleInstance();
             RegisterConfigInstance(services);
             RegisterLocalInstance("ICacheClient`1", services);
             return builder;
         }
 
+        /// <summary>
+        /// 注册本地实例 
+        /// </summary>
+        /// <param name="typeName"></param>
+        /// <param name="services"></param>
         private static void RegisterLocalInstance(string typeName, ContainerBuilder services)
         {
             var types = typeof(AppConfig)
@@ -47,6 +63,10 @@ namespace Surging.Core.Caching
             }
         }
 
+        /// <summary>
+        /// 注册配置实例 
+        /// </summary>
+        /// <param name="services"></param>
         private static void RegisterConfigInstance(ContainerBuilder services)
         {
             var cacheWrapperSetting = AppConfig.Configuration.Get<CachingProvider>();
@@ -87,6 +107,11 @@ namespace Surging.Core.Caching
             catch { }
         }
 
+        /// <summary>
+        /// 获取类型的属性值 
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         private static object GetTypedPropertyValue(Property obj)
         {
             var mapCollections = obj.Maps;
